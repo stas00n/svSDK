@@ -29,9 +29,6 @@
     <ClInclude Include="comport.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="perf.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
     <ClInclude Include="SV\inc\scanviz.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>

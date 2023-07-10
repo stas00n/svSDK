@@ -7,114 +7,93 @@
 #include "scanviz.h"
 #include "svMsgProc.h"
 #include "comport.h"
-#include "perf.h"
 
 
-
-
-/* событие для завершения потоков */
-HANDLE ghEventExit;
-
-ComPort com;
-SvMsgProc sv;
-
-enum class _mode { serial, file } mode;
+HANDLE ghEventExit; /* событие для завершения потоков */
 
 DWORD WINAPI threadRx(LPVOID lpParams);
 DWORD WINAPI threadReadFromFile(LPVOID lpParams);
 DWORD WINAPI threadParse(LPVOID lpParams);
-DWORD WINAPI threadBurn(LPVOID lpParams);
-DWORD WINAPI threadWriteFileTicks(LPVOID lpParams);
+DWORD WINAPI threadWriteFile(LPVOID lpParams);
 
-uint32_t outEnabled = 1; // 
+uint32_t outEnabled = 1; /* вывод в консоль вкл/выкл */ 
 
-DWORD bytesRxBurn = 0;
+CStreamBuffer <262144> sbRawdata;	/* Буфер 256к для записи в файл */
+ComPort com;	/* Обертка для работы с COM портом */
+SvMsgProc sv;	/* Для работы с командами/логами scanviz */
 
-DWORD maxTicks = 0;
-DWORD sumTicks = 0;
-DWORD sumCnt = 0;
-DWORD maxRdCnt = 0;
-
-CStreamBuffer<65536> sbTicks;
-CStreamBuffer<0x40000> sbRawdata;
-
-HANDLE hThreadWriteFileTicks;
-
+/**
+ * @brief Шаблон отправки команд
+ * @param T scanviz команда (структура из scanviz.h) для отправки 
+ * (с заполненными полями тела)
+ * @param id ID команды. Должен соответствовать типу команды
+ * @returns true в случае успешной отправки
+ */
 template<typename T, uint8_t id>
 bool Send_Cmd(T* pMsg);
+
 void PrintHelp();
 
-HANDLE hThreadRx;
-
-
-
-PerfTimer tim;
 
 int main(int argc, char** argv) {
 
-
-	//HANDLE hThreadRx;
-	HANDLE hThreadParse;
-	HANDLE hThreadBurn;
-	HANDLE hThreadReadFromFile;
+	HANDLE hThreadRx = nullptr;
+	HANDLE hThreadParse = nullptr;
+	HANDLE hThreadReadFromFile = nullptr;
+	HANDLE hThreadWriteFile = nullptr;
 
 	if (argc != 3) {
 		std::cout << " Error syntax! Usage:\n\tsvTest comportnumber baudrate\n";
 		std::cout << "\tsvTest -f filename\n Anykey for exit.\n";
 		while (_getch() == 0) {
-			Sleep(64);
+			Sleep(60);
 		}
 		return 0;
 	}
 
+	ghEventExit = CreateEvent(nullptr, TRUE, FALSE, nullptr);
 
 	if (memcmp(argv[1], "-f", 3) == 0) {
-		mode = _mode::file;
+		/* Работаем с файлом */
+		hThreadParse = CreateThread(nullptr, 0, threadParse, nullptr, 0, nullptr);
 		hThreadReadFromFile = CreateThread(nullptr, 0, threadReadFromFile, argv[2], 0, nullptr);
 	}
 	else {
-		mode = _mode::serial;
+		/* Работаем с COM портом */
 		uint32_t baud = 0;
 		uint32_t comNum = 0;
 		sscanf_s(argv[1], "%d", &comNum);
 		sscanf_s(argv[2], "%d", &baud);
 		if (!com.Open((uint8_t)comNum, baud)) {
+			/* Проблемы с портом - выход */
 			std::cout << " Error open " << com.szComPortName << "\n " << com.GetLastErrorMessage() << " Anykey for exit.\n";
 			while (_getch() == 0) {
-				Sleep(64);
+				Sleep(60);
 			}
 			return 0;
 		}
 		else {
+			/* COM OK */
 			std::cout << " " << com.szComPortName << " open OK.\n";
 			PrintHelp();
-
+			/* Запускаем нужные потоки */
+			hThreadParse = CreateThread(nullptr, 0, threadParse, nullptr, 0, nullptr);
 			hThreadRx = CreateThread(nullptr, 0, threadRx, nullptr, 0, nullptr);
 			if (hThreadRx) {
 				SetThreadPriority(hThreadRx, THREAD_PRIORITY_TIME_CRITICAL);
 			}
-			hThreadWriteFileTicks = CreateThread(nullptr, 0, threadWriteFileTicks, nullptr, 0, nullptr);
-
+			hThreadWriteFile = CreateThread(nullptr, 0, threadWriteFile, nullptr, 0, nullptr);
 		}
 	}
-	ghEventExit = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-	//ghMutex = CreateMutex(nullptr, FALSE, nullptr);
-
-	hThreadParse = CreateThread(nullptr, 0, threadParse, nullptr, 0, nullptr);
-	if (hThreadParse) {
-		SetThreadPriority(hThreadParse, THREAD_PRIORITY_ABOVE_NORMAL);
-	}
-
-
-
-	int ch;
+	
 	while (1) {
-		ch = _getch();
-		Sleep(20);
-
+		Sleep(60);
+		int ch = _getch();
+		// Выход
 		if ((ch == 'q') || (ch == 'Q')) {
 			break;
 		}
+		// Вкл/выкл вывод в консоль
 		if ((ch == 'o') || (ch == 'O')) {
 			outEnabled ^= 1;
 			if (outEnabled) {
@@ -124,46 +103,43 @@ int main(int argc, char** argv) {
 				std::cout << " Output disabled\n"; ;
 			}
 		}
+		// хелп
 		if ((ch == 'h') || (ch == 'H')) {
 			PrintHelp();
 		}
-		if ((ch == 'b') || (ch == 'B')) {
-			hThreadBurn = CreateThread(nullptr, 0, threadBurn, nullptr, 0, nullptr);
-			if (hThreadBurn) {
-				SetThreadPriority(hThreadBurn, THREAD_PRIORITY_TIME_CRITICAL);
-			}
-		}
+		// Примеры отправки команд
 		if (ch == '1') {
-			/* Создаем и заполняем тело команды (все кроме hdr и chksum */
-			cmdCamTrigDist_t cmd;
-			cmd.distSrc = DISTANCE_SRC_INSPVA;
-			cmd.maxRate = 15;
-			cmd.trgPulse_ms = 5;
-			cmd.trgDistance = 3.0f;
+			/* Создаем команду и заполняем тело команды (все поля, кроме hdr и chksum) */
+			cmdCamTrigDist_t cmd;				// Команда триггера по расстоянию
+			cmd.distSrc = DISTANCE_SRC_INSPVA;	// триггер от ИНС
+			cmd.maxRate = 15;					// 15 fps max
+			cmd.trgPulse_ms = 5;				// 5 мс длительность импульса
+			cmd.trgDistance = 3.0f;				// триггируем через каждые 3 м
+			/* Отправляем команду */
 			Send_Cmd <cmdCamTrigDist_t, SCANVIZ_CMDID_CAM_TRIG_DIST>(&cmd);
 		}
 		if (ch == '2') {
-			cmdCamTrigTimed_t cmd;
+			cmdCamTrigTimed_t cmd;	// Команда триггера по времени
 			cmd.trgPeriod_ms = 0;
 			cmd.trgPulse_ms = 20;
 			Send_Cmd <cmdCamTrigTimed_t, SCANVIZ_CMDID_CAM_TRIG_TIMED>(&cmd);
 		}
 		if (ch == '3') {
-			cmdGetVersion_t cmd;
+			cmdGetVersion_t cmd;	// Получить версию firmware
 			cmd.reserved = 0;
 			Send_Cmd <cmdGetVersion_t, SCANVIZ_CMDID_GET_VERSION>(&cmd);
 		}
 		if (ch == '4') {
-			cmdSetOdoParams_t cmd;
+			cmdSetOdoParams_t cmd;	// Настройка одометра - 20 Гц
 			cmd.countMode = 1;
 			cmd.doubleResolition = 0;
-			cmd.outputRate = 254;
+			cmd.outputRate = 20;
 			cmd.reverseDir = 0;
 			Send_Cmd <cmdSetOdoParams_t, SCANVIZ_CMDID_SET_ODO_PARAMS>(&cmd);
 		}
 		if (ch == '5') {
-			cmdSetOdoParams_t cmd;
-			cmd.countMode = 1;
+			cmdSetOdoParams_t cmd;	// Настройка одометра - выкл
+			cmd.countMode = 0;
 			cmd.doubleResolition = 0;
 			cmd.outputRate = 0;
 			cmd.reverseDir = 0;
@@ -176,16 +152,23 @@ int main(int argc, char** argv) {
 		SetEvent(ghEventExit);
 	}
 	if (hThreadRx) {
-		WaitForSingleObject(hThreadRx, INFINITE);
+		WaitForSingleObject(hThreadRx, 500);
 		CloseHandle(hThreadRx);
 	}
+	com.Close();
 	if (hThreadParse) {
-		WaitForSingleObject(hThreadParse, INFINITE);
+		WaitForSingleObject(hThreadParse, 500);
 		CloseHandle(hThreadParse);
 	}
-	com.Close();
+	if (hThreadReadFromFile) {
+		WaitForSingleObject(hThreadReadFromFile, 500);
+		CloseHandle(hThreadReadFromFile);
+	}
+	if (hThreadWriteFile) {
+		WaitForSingleObject(hThreadWriteFile, 500);
+		CloseHandle(hThreadWriteFile);
+	}
 	return 0;
-
 }
 
 /**
@@ -193,9 +176,7 @@ int main(int argc, char** argv) {
  */
 DWORD WINAPI threadRx(LPVOID lpParams) {
 
-	uint8_t tmpbuf[65536UL];	/* промежуточный буфер 64k */
-	
-	static uint32_t ticks_prev;
+	static uint8_t tmpbuf[65536UL];	/* промежуточный буфер 64k */
 
 	/* Ограничить размер единовременного чтения из порта, т.к. на старых драйверах бывает BSOD */
 	DWORD maxReadPortion = sizeof(tmpbuf);
@@ -203,20 +184,8 @@ DWORD WINAPI threadRx(LPVOID lpParams) {
 		maxReadPortion = com.rxQueueSize / 2; /* Читаем по половине буфера драйвера */
 	}
 
-	ticks_prev = GetTickCount();
-	sumTicks = 0;
 
 	while (1) {
-		tim.Start();
-		uint32_t ticks_now = GetTickCount();
-		uint32_t ticks = ticks_now - ticks_prev;
-		sumTicks += ticks;
-		sumCnt += 1;
-		ticks_prev = ticks_now;
-		if (ticks > maxTicks) {
-			maxTicks = ticks;
-		}
-
 		/* Считываем сколько пришло байт */
 		DWORD rdCnt;
 		BOOL rdSuccess;
@@ -230,7 +199,6 @@ DWORD WINAPI threadRx(LPVOID lpParams) {
 		}
 		/* Read success */
 		else {
-			sbTicks.Write((uint8_t*)&rdCnt, 4);
 			if (rdCnt) {
 				/* Отправляем в буфер для разбора */
 				uint32_t wr;
@@ -243,16 +211,8 @@ DWORD WINAPI threadRx(LPVOID lpParams) {
 				wr = sbRawdata.Write2(tmpbuf, rdCnt);
 				if (wr != rdCnt) {
 					std::cout << " File buffer overflow! Some data lost.\n";
-					sv.msgStream.Reset();
+					sbRawdata.Reset();
 				}
-				
-				// Для теста максимальной загрузки буфера порта
-				int64_t micros = tim.Stop();
-				bytesRxBurn += rdCnt;
-				if (maxRdCnt < rdCnt) {
-					maxRdCnt = rdCnt;
-				}
-
 			}
 		}
 
@@ -266,24 +226,28 @@ DWORD WINAPI threadRx(LPVOID lpParams) {
 }
 
 DWORD WINAPI threadParse(LPVOID lpParams) {
+
 	scanvizHdr_t* svHdr = (scanvizHdr_t*)0;
 
 	while (1) {
-
+		/* Проверяем есть ли новое сообщение */
 		svHdr = sv.Get_Msg();
-
 		if (svHdr) {
+			/* смотрим ID */
 			switch (svHdr->msgID) {
 			case SCANVIZ_MSGID_EVENT:
 				msgEvent_t* evt;
-				evt = (msgEvent_t*)svHdr;
+				evt = (msgEvent_t*)svHdr;	/* приводим указатеь к соответствующему типу */
 				if (outEnabled) {
+					/* извлекаем данные */
 					std::cout << " EVT:\tTimestamp: " << (evt->time) << " SourceID: " << evt->srcID << "\n";
 				}
 				break;
 
 			case SCANVIZ_MSGID_LOG:
-				LPSTR lpLogText;
+				/* Для текстового лога нет отдельного типа, длина переменная, 
+				   приводим к указателю на строку */
+				LPSTR lpLogText;		
 				lpLogText = ((LPSTR)svHdr) + sizeof(scanvizHdr_t);
 				if (outEnabled) {
 					std::cout << " LOG:\t" << lpLogText;
@@ -303,6 +267,14 @@ DWORD WINAPI threadParse(LPVOID lpParams) {
 				odo = (msgOdo_t*)svHdr;
 				if (outEnabled) {
 					std::cout << " ODO:\tTimestamp: " << odo->time << "\tPulses: " << odo->pulses << "\n";
+				}
+				break;
+
+			case SCANVIZ_MSGID_TIMEDWHEELDATA:
+				msgTimedWheel_t* tw;
+				tw = (msgTimedWheel_t*)svHdr;
+				if (outEnabled) {
+					std::cout << " TWH:\tTimestamp: " << tw->timestamp << "\tCumulative ticks: " << tw->cumulativeTicks << "\n";
 				}
 				break;
 
@@ -326,45 +298,15 @@ DWORD WINAPI threadParse(LPVOID lpParams) {
 
 
 
-DWORD WINAPI threadBurn(LPVOID lpParams) {
-	maxTicks = 0;
-	std::cout << "\n CPU Burn for 10 seconds started!\n";
-	bytesRxBurn = 0;
-	maxRdCnt = 0;
-	DWORD ticks = GetTickCount();
-
-	while (1) {
-		DWORD ms = GetTickCount() - ticks;
-		if (ms > 10000) {
-			break;
-		}
-	}
-	float avgTicks = (float)sumTicks / (float)sumCnt;
-	std::cout << " Burn Stop. " << bytesRxBurn << " Recived\n" << "MaxTicksRx = " << maxTicks << " AvgTicks = " << avgTicks << "\n";
-	std::cout << "Max RdCnt = " << maxRdCnt;
-	return 0;
-}
-
-DWORD WINAPI threadWriteFileTicks(LPVOID lpParams) {
-	HANDLE hFileTicks;
-	hFileTicks = CreateFile("ticks.bin", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (hFileTicks == INVALID_HANDLE_VALUE) {
-		std::cout << " Error open file " << "for writing\n" << com.GetLastErrorMessage();
-		return 0;
-	}
+DWORD WINAPI threadWriteFile(LPVOID lpParams) {
 
 	HANDLE hFileRaw = INVALID_HANDLE_VALUE;
-	hFileRaw = CreateFile("rawserial.bin", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+	hFileRaw = CreateFile("rawdata.bin", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 
-	uint8_t tmpbuf[4096];
-	uint8_t rawbuf[0x40000];
+	static uint8_t rawbuf[0x40000];
 	DWORD rd;
 	DWORD wr;
 	while (1) {
-		if (sbTicks.GetCount() >= 4096) {
-			rd = sbTicks.Read2(tmpbuf, 4096);
-			WriteFile(hFileTicks, tmpbuf, rd, &wr, nullptr);
-		}
 		if (sbRawdata.GetCount() >= 0x20000) {
 			rd = sbRawdata.Read2(rawbuf, 0x20000);
 			WriteFile(hFileRaw, rawbuf, rd, &wr, nullptr);
@@ -373,10 +315,6 @@ DWORD WINAPI threadWriteFileTicks(LPVOID lpParams) {
 			break;
 		}
 	}
-	rd = sbTicks.Read2(tmpbuf, 4096);
-	WriteFile(hFileTicks, tmpbuf, rd, &wr, nullptr);
-	CloseHandle(hFileTicks);
-
 	rd = sbRawdata.Read2(rawbuf, 0x40000);
 	WriteFile(hFileRaw, rawbuf, rd, &wr, nullptr);
 	CloseHandle(hFileRaw);
@@ -394,7 +332,7 @@ DWORD WINAPI threadReadFromFile(LPVOID lpParams) {
 	}
 
 
-	uint8_t tmpbuf[65536]{};
+	static uint8_t tmpbuf[65536]{};
 	DWORD rdCnt;
 	DWORD space;
 	bool rdSuccess;
@@ -403,7 +341,7 @@ DWORD WINAPI threadReadFromFile(LPVOID lpParams) {
 	while (1) {
 		/* ожидаем освобождения места в буфере разбора */
 		while ((space = sv.msgStream.GetSpace()) < 4096) {
-			Sleep(15);
+			Sleep(14);
 		}
 		rdCnt = 0;
 		rdSuccess = ReadFile(hFileIn, tmpbuf, space, &rdCnt, nullptr);
@@ -416,7 +354,7 @@ DWORD WINAPI threadReadFromFile(LPVOID lpParams) {
 		sv.msgStream.Write2(tmpbuf, rdCnt);
 
 		/* Выход (событие выхода) */
-		if (WaitForSingleObject(ghEventExit, 30) != WAIT_TIMEOUT) {
+		if (WaitForSingleObject(ghEventExit, 14) != WAIT_TIMEOUT) {
 			break;
 		}
 		/* Выход (конец файла) */
@@ -427,7 +365,7 @@ DWORD WINAPI threadReadFromFile(LPVOID lpParams) {
 	return ret;
 }
 
-template<typename T, uint8_t id>
+template <typename T, uint8_t id>
 bool Send_Cmd(T* pMsg) {
 
 	sv.Build_Msg(pMsg, id, (sizeof(T) - 10));
@@ -436,14 +374,14 @@ bool Send_Cmd(T* pMsg) {
 	DWORD bytesSent = 0;
 	bool success = com.Write(pMsg, bytesToSend, &bytesSent);
 	if (!success) {
-		std::cout << "Command send error: " << com.GetLastErrorMessage();
+		std::cout << " Command send error: " << com.GetLastErrorMessage();
 	}
 	else {
-		std::cout << "Command sent OK: " << bytesSent << "bytes\n";
+		std::cout << " Command sent OK: " << bytesSent << "bytes\n";
 	}
 	return success;
 }
 
 void PrintHelp() {
-	std::cout << " 1...5 - Send test command\n O - Toggle message output\n B - Start CPU Burn Thread\n Q - exit\n H - Print this help\n";
+	std::cout << " 1...5 - Send test command\n O - Toggle message output\n Q - exit\n H - Print this help\n";
 }
