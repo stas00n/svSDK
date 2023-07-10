@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+
+**/Examples/msvc/svTest/.vs/
+**/Examples/msvc/svTest/Debug/
+**/Examples/msvc/svTest/Release/
+**/Examples/msvc/svTest/x64/
+Examples/msvc/svTest/*.bin
+
