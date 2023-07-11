@@ -43,6 +43,7 @@ typedef enum {
 
 	SCANVIZ_CMDID_SET_WHEEL_PARAMS = 0x87,
 	SCANVIZ_CMDID_GET_VERSION = 0x88,
+	SCANVIZ_CMDID_SET_EVENT_COUNTER	= 0x89,
 
 	SCANVIZ_CMDID_START_BOOTLOADER = 0xFE
 }svCmdID_t;
@@ -85,8 +86,9 @@ typedef struct {
 
 typedef struct {
 	scanvizHdr_t  hdr;
-	double        time;       /* UTC time, s */
-	uint16_t      srcID;      /* Event source ID */
+	double        time;			/* UTC time, s */
+	uint32_t	  counter;		/* —четчик */
+	uint16_t      srcID;		/* Event source ID */
 	uint16_t      chkSum;
 }msgEvent_t;
 
@@ -196,6 +198,21 @@ typedef struct {
 	uint32_t      reserved;
 	uint16_t      chkSum;
 }cmdGetVersion_t;
+
+typedef struct {
+	scanvizHdr_t	hdr;
+	uint16_t		reserved;
+	uint16_t		eventSrcID;
+	uint32_t		newCounterValue;
+	uint16_t		chkSum;
+}cmdSetEventCounter_t;
+
+
+typedef struct {
+	scanvizHdr_t	hdr;
+	uint32_t		reserved;
+	uint16_t		chkSum;
+}cmdBootloader_t;
 
 /* макрос расчета длины тела сообщени€ */
 #define BODYLENGTH(svtype) ((const uint16_t)((sizeof(svtype) - sizeof(scanvizHdr_t) - 2)))

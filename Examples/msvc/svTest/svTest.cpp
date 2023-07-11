@@ -34,6 +34,14 @@ bool Send_Cmd(T* pMsg);
 
 void PrintHelp();
 
+/**
+ * Print double with .3 precision
+ */
+static char * PrintDbl(double in) {
+	static char str[32];
+	sprintf_s(str, "%.3lf", in);
+	return str;
+}
 
 int main(int argc, char** argv) {
 
@@ -114,13 +122,13 @@ int main(int argc, char** argv) {
 			cmd.distSrc = DISTANCE_SRC_INSPVA;	// триггер от ИНС
 			cmd.maxRate = 15;					// 15 fps max
 			cmd.trgPulse_ms = 5;				// 5 мс длительность импульса
-			cmd.trgDistance = 3.0f;				// триггируем через каждые 3 м
+			cmd.trgDistance = 0.03f;				// триггируем через каждые 3 cм
 			/* Отправляем команду */
 			Send_Cmd <cmdCamTrigDist_t, SCANVIZ_CMDID_CAM_TRIG_DIST>(&cmd);
 		}
 		if (ch == '2') {
 			cmdCamTrigTimed_t cmd;	// Команда триггера по времени
-			cmd.trgPeriod_ms = 0;
+			cmd.trgPeriod_ms = 500;
 			cmd.trgPulse_ms = 20;
 			Send_Cmd <cmdCamTrigTimed_t, SCANVIZ_CMDID_CAM_TRIG_TIMED>(&cmd);
 		}
@@ -133,7 +141,7 @@ int main(int argc, char** argv) {
 			cmdSetOdoParams_t cmd;	// Настройка одометра - 20 Гц
 			cmd.countMode = 1;
 			cmd.doubleResolition = 0;
-			cmd.outputRate = 20;
+			cmd.outputRate = 2;
 			cmd.reverseDir = 0;
 			Send_Cmd <cmdSetOdoParams_t, SCANVIZ_CMDID_SET_ODO_PARAMS>(&cmd);
 		}
@@ -144,6 +152,29 @@ int main(int argc, char** argv) {
 			cmd.outputRate = 0;
 			cmd.reverseDir = 0;
 			Send_Cmd <cmdSetOdoParams_t, SCANVIZ_CMDID_SET_ODO_PARAMS>(&cmd);
+		}
+		if (ch == '6') {
+			cmdCamTrigTimed_t cmd;
+			cmd.trgPulse_ms = 5;
+			cmd.trgPeriod_ms = 200;
+			Send_Cmd <cmdCamTrigTimed_t, SCANVIZ_CMDID_CAM_TRIG_TIMED>(&cmd);
+		}
+		if (ch == '7') {
+			cmdSetWheelParams_t cmd;
+			cmd.ticksPerRev = 150;
+			cmd.tickSpacing = 0.005;
+			cmd.wheelCirc = 2.033;
+			Send_Cmd <cmdSetWheelParams_t, SCANVIZ_CMDID_SET_WHEEL_PARAMS>(&cmd);
+		}
+		if (ch == '8') {
+			cmdSetEventCounter_t cmd;
+			cmd.eventSrcID = 1;
+			cmd.newCounterValue = 0;
+			Send_Cmd <cmdSetEventCounter_t, SCANVIZ_CMDID_SET_EVENT_COUNTER>(&cmd);
+		}
+		if (ch == '9') {
+			cmdBootloader_t cmd;
+			Send_Cmd <cmdBootloader_t, SCANVIZ_CMDID_START_BOOTLOADER>(&cmd);
 		}
 	}
 
@@ -240,7 +271,8 @@ DWORD WINAPI threadParse(LPVOID lpParams) {
 				evt = (msgEvent_t*)svHdr;	/* приводим указатеь к соответствующему типу */
 				if (outEnabled) {
 					/* извлекаем данные */
-					std::cout << " EVT:\tTimestamp: " << (evt->time) << " SourceID: " << evt->srcID << "\n";
+					std::cout << " EVT:\tTimestamp: " << PrintDbl(evt->time) << " SourceID: " << evt->srcID;
+					std::cout << " Counter: " << evt->counter << "\n";
 				}
 				break;
 
@@ -266,7 +298,7 @@ DWORD WINAPI threadParse(LPVOID lpParams) {
 				msgOdo_t* odo;
 				odo = (msgOdo_t*)svHdr;
 				if (outEnabled) {
-					std::cout << " ODO:\tTimestamp: " << odo->time << "\tPulses: " << odo->pulses << "\n";
+					std::cout << " ODO:\tTimestamp: " << PrintDbl(odo->time) << "\tPulses: " << odo->pulses << "\n";
 				}
 				break;
 
@@ -274,7 +306,8 @@ DWORD WINAPI threadParse(LPVOID lpParams) {
 				msgTimedWheel_t* tw;
 				tw = (msgTimedWheel_t*)svHdr;
 				if (outEnabled) {
-					std::cout << " TWH:\tTimestamp: " << tw->timestamp << "\tCumulative ticks: " << tw->cumulativeTicks << "\n";
+					std::cout << " TWH:\tTimestamp: " << PrintDbl(tw->timestamp) << "\tCumulative ticks: " << tw->cumulativeTicks;
+					std::cout << " wheelSpeed: " << tw->wheelVel << " TicksPerRev: " << tw->ticksPerRev << "\n";
 				}
 				break;
 
@@ -383,5 +416,14 @@ bool Send_Cmd(T* pMsg) {
 }
 
 void PrintHelp() {
-	std::cout << " 1...5 - Send test command\n O - Toggle message output\n Q - exit\n H - Print this help\n";
+	std::cout << " O - Toggle message output\n Q - exit\n H - Print this help\n\n";
+	std::cout << " 1 - CAM_TRIG_DISTANCE (INSPVA)\n";
+	std::cout << " 2 - CAM_TRIG_TIMED (500)\n";
+	std::cout << " 3 - GET_VERSION\n";
+	std::cout << " 4 - SET_ODO_PARAMS - 2 Hz\n";
+	std::cout << " 5 - SET_ODO_PARAMS - OFF\n";
+	std::cout << " 6 - CAM_TRIG_TIMED 200 ms\n";
+	std::cout << " 7 - SET_WHEEL_PARAMS\n";
+	std::cout << " 8 - SET_EVENT_COUNTER\n";
+	std::cout << " 9 - START_BOOTLOADER\n";
 }
