@@ -45,6 +45,7 @@ static char * PrintDbl(double in) {
 
 int main(int argc, char** argv) {
 
+
 	HANDLE hThreadRx = nullptr;
 	HANDLE hThreadParse = nullptr;
 	HANDLE hThreadReadFromFile = nullptr;
