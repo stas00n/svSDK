@@ -44,10 +44,15 @@ typedef enum {
 	SCANVIZ_CMDID_SET_WHEEL_PARAMS = 0x87,
 	SCANVIZ_CMDID_GET_VERSION = 0x88,
 	SCANVIZ_CMDID_SET_EVENT_COUNTER	= 0x89,
-
+	BLCMD_GO = 0xF9,
+	/*BLCMD_RESET_KEYINDX = 0xFA,*/
+	BLCMD_VERIFY = 0xFB,
+	BLCMD_WRITE = 0xFC,
+	BLCMD_ERASE = 0xFD,
 	SCANVIZ_CMDID_START_BOOTLOADER = 0xFE
 }svCmdID_t;
 
+#pragma pack(push, 2)
 /* Заголовок пакета */
 typedef struct {
 	uint16_t  sync;       /* Message start marker, ASCII "MS" - 0x534D */
@@ -58,7 +63,7 @@ typedef struct {
 }scanvizHdr_t;
 
 /* IMU данные - устаревший пакет - использовался в RoadLab для ретрансляции SBG */
-#pragma pack(push, 2)
+
 typedef struct {
 	double time;      /* UTC time, s */
 	uint32_t    week;
@@ -76,7 +81,7 @@ typedef struct {
 	}deltaAng;        /* Delta angle, rad */
 	uint16_t      clkStatus;
 }rawimu_t;
-#pragma pack(pop)
+
 
 typedef struct {
 	scanvizHdr_t  hdr;
@@ -113,12 +118,15 @@ typedef struct {
 	uint16_t      chkSum;
 }msgTimedWheel_t;
 
+
 /* Подтверждение и результат приема последней команды */
+
 typedef struct {
 	scanvizHdr_t  hdr;
 	uint32_t      errorCode;       /* Результат последней команды 0 = OK, или ненулевой код ошибки */
 	uint16_t      chkSum;
 }msgAck_t;
+
 
 /* Коды ошибок для ACK */
 typedef enum {
@@ -129,12 +137,14 @@ typedef enum {
 
 
 /* Команда управления триггером камеры по времени */
+
 typedef struct {
 	scanvizHdr_t  hdr;
 	uint16_t      trgPeriod_ms;   /* Период в мс, 0 - однократно */
 	uint16_t      trgPulse_ms;    /* Длительность импульса 0 - отключено */
 	uint16_t      chkSum;
 }cmdCamTrigTimed_t;
+
 
 /* Команда управления питанием сканера */
 typedef struct {
@@ -153,7 +163,7 @@ typedef struct {
 	uint16_t      chkSum;
 }cmdCamTrigDist_t;
 
-#pragma pack (push, 4)
+
 /* Команда установки параметров колеса (как у Novatel) */
 typedef struct {
 	scanvizHdr_t  hdr;            /* Заголовок */
@@ -163,9 +173,9 @@ typedef struct {
 	double        tickSpacing;    /* Spacing of ticks (used to weight the wheel sensor) */
 	uint16_t      chkSum;
 }cmdSetWheelParams_t;
-#pragma pack (pop)
 
-#pragma pack (push, 4)
+
+
 /* Настройка одометра */
 typedef struct {
 	scanvizHdr_t  hdr;    /* Заголовок */
@@ -179,9 +189,9 @@ typedef struct {
 	uint8_t       reverseDir;     /* Программный реверс направления */
 	uint16_t      chkSum;
 }cmdSetOdoParams_t;
-#pragma pack (pop)
 
-#pragma pack (push, 4)
+
+
 /* Команда изменения скорости UART */
 typedef struct {
 	scanvizHdr_t  hdr;            /* Заголовок */
@@ -190,7 +200,7 @@ typedef struct {
 	uint32_t      speed;          /* Скорость UART: мин. 2400, макс. 2000000 bps */
 	uint16_t      chkSum;
 }cmdSetUARTSpeed_t;
-#pragma pack (pop)
+
 
 /* Запрос версии firmware */
 typedef struct {
@@ -207,12 +217,13 @@ typedef struct {
 	uint16_t		chkSum;
 }cmdSetEventCounter_t;
 
-
 typedef struct {
 	scanvizHdr_t	hdr;
 	uint32_t		reserved;
 	uint16_t		chkSum;
 }cmdBootloader_t;
+
+#pragma pack (pop)
 
 /* макрос расчета длины тела сообщения */
 #define BODYLENGTH(svtype) ((const uint16_t)((sizeof(svtype) - sizeof(scanvizHdr_t) - 2)))
