@@ -44,6 +44,7 @@ typedef enum {
 	SCANVIZ_CMDID_SET_WHEEL_PARAMS = 0x87,
 	SCANVIZ_CMDID_GET_VERSION = 0x88,
 	SCANVIZ_CMDID_SET_EVENT_COUNTER	= 0x89,
+    SCANVIZ_CMDID_REBOOT = 0xEF,
 	BLCMD_GO = 0xF9,
 	/*BLCMD_RESET_KEYINDX = 0xFA,*/
 	BLCMD_VERIFY = 0xFB,
@@ -222,6 +223,12 @@ typedef struct {
 	uint32_t		reserved;
 	uint16_t		chkSum;
 }cmdBootloader_t;
+
+typedef struct {
+	scanvizHdr_t	hdr;
+	uint32_t		rebootcode;
+	uint16_t		chkSum;
+}cmdReboot_t;
 
 #pragma pack (pop)
 

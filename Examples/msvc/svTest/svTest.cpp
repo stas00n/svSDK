@@ -177,6 +177,11 @@ int main(int argc, char** argv) {
 			cmdBootloader_t cmd;
 			Send_Cmd <cmdBootloader_t, SCANVIZ_CMDID_START_BOOTLOADER>(&cmd);
 		}
+		if (ch == '0') {
+			cmdReboot_t cmd;
+			cmd.rebootcode = 0;
+			Send_Cmd <cmdReboot_t, SCANVIZ_CMDID_REBOOT>(&cmd);
+		}
 	}
 
 	/* Завершение программы */
@@ -427,4 +432,5 @@ void PrintHelp() {
 	std::cout << " 7 - SET_WHEEL_PARAMS\n";
 	std::cout << " 8 - SET_EVENT_COUNTER\n";
 	std::cout << " 9 - START_BOOTLOADER\n";
+	std::cout << " 0 - REBOOT\n";
 }
