@@ -35,6 +35,7 @@ Scanviz serial protocol definitions
 
 /* Command IDs */
 typedef enum {
+        SCANVIZ_CMDID_PING = 0x80,
 	SCANVIZ_CMDID_CAM_TRIG_TIMED = 0x81,
 	SCANVIZ_CMDID_PWRCTRL = 0x82,
 	SCANVIZ_CMDID_CAM_TRIG_DIST = 0x83,
@@ -44,7 +45,7 @@ typedef enum {
 	SCANVIZ_CMDID_SET_WHEEL_PARAMS = 0x87,
 	SCANVIZ_CMDID_GET_VERSION = 0x88,
 	SCANVIZ_CMDID_SET_EVENT_COUNTER	= 0x89,
-    SCANVIZ_CMDID_REBOOT = 0xEF,
+        SCANVIZ_CMDID_REBOOT = 0xEF,
 	BLCMD_GO = 0xF9,
 	/*BLCMD_RESET_KEYINDX = 0xFA,*/
 	BLCMD_VERIFY = 0xFB,
@@ -218,6 +219,11 @@ typedef struct {
 	uint16_t		chkSum;
 }cmdSetEventCounter_t;
 
+/* Empty command For connection test */
+typedef struct {
+	scanvizHdr_t	hdr;
+	uint16_t		chkSum;
+}cmdPing_t;
 typedef struct {
 	scanvizHdr_t	hdr;
 	uint32_t		reserved;
@@ -229,7 +235,6 @@ typedef struct {
 	uint32_t		rebootcode;
 	uint16_t		chkSum;
 }cmdReboot_t;
-
 #pragma pack (pop)
 
 /* макрос расчета длины тела сообщения */
