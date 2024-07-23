@@ -239,13 +239,13 @@ DWORD WINAPI threadRx(LPVOID lpParams) {
 			if (rdCnt) {
 				/* Отправляем в буфер для разбора */
 				uint32_t wr;
-				wr = sv.msgStream.Write2(tmpbuf, rdCnt);
+				wr = (uint32_t) sv.msgStream.Write2(tmpbuf, rdCnt);
 				if (wr != rdCnt) {
 					std::cout << " Parse buffer overflow! Some data lost.\n";
 					sv.msgStream.Reset();
 				}
 				/* Запись в файл */
-				wr = sbRawdata.Write2(tmpbuf, rdCnt);
+				wr = (uint32_t) sbRawdata.Write2(tmpbuf, rdCnt);
 				if (wr != rdCnt) {
 					std::cout << " File buffer overflow! Some data lost.\n";
 					sbRawdata.Reset();
@@ -347,7 +347,7 @@ DWORD WINAPI threadWriteFile(LPVOID lpParams) {
 	DWORD wr;
 	while (1) {
 		if (sbRawdata.GetCount() >= 0x20000) {
-			rd = sbRawdata.Read2(rawbuf, 0x20000);
+			rd =  sbRawdata.Read2(rawbuf, 0x20000);
 			WriteFile(hFileRaw, rawbuf, rd, &wr, nullptr);
 		}
 		if (WaitForSingleObject(ghEventExit, 30) != WAIT_TIMEOUT) {
@@ -408,7 +408,7 @@ template <typename T, uint8_t id>
 bool Send_Cmd(T* pMsg) {
 
 	sv.Build_Msg(pMsg, id, (sizeof(T) - 10));
-	size_t bytesToSend = sizeof(T);
+	uint32_t bytesToSend = sizeof(T);
 
 	DWORD bytesSent = 0;
 	bool success = com.Write(pMsg, bytesToSend, &bytesSent);

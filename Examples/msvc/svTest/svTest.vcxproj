@@ -77,9 +77,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>..\..\..\inc;$(IncludePath)</IncludePath>
+    <SourcePath>..\..\..\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>..\..\..\inc;$(IncludePath)</IncludePath>
+    <SourcePath>..\..\..\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -142,15 +146,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\src\svMsgProc.cpp" />
     <ClCompile Include="comport.cpp" />
     <ClCompile Include="svTest.cpp" />
-    <ClCompile Include="SV\src\svMsgProc.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\inc\scanviz.h" />
+    <ClInclude Include="..\..\..\inc\streambuf.h" />
+    <ClInclude Include="..\..\..\inc\svMsgProc.h" />
     <ClInclude Include="comport.h" />
-    <ClInclude Include="SV\inc\scanviz.h" />
-    <ClInclude Include="SV\inc\streambuf.h" />
-    <ClInclude Include="SV\inc\svMsgProc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

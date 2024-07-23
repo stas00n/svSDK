@@ -21,7 +21,7 @@
     <ClCompile Include="comport.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="SV\src\svMsgProc.cpp">
+    <ClCompile Include="..\..\..\src\svMsgProc.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,13 +29,13 @@
     <ClInclude Include="comport.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="SV\inc\scanviz.h">
+    <ClInclude Include="..\..\..\inc\scanviz.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="SV\inc\streambuf.h">
+    <ClInclude Include="..\..\..\inc\streambuf.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="SV\inc\svMsgProc.h">
+    <ClInclude Include="..\..\..\inc\svMsgProc.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

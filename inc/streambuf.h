@@ -52,7 +52,7 @@ public:
 	 * @retval количество фактически записанных байт. В вызывающей функции проверять равенство
 	 * size и retval. При неравенстве - обработать как ошибку переполнения буфера
 	 */
-	size_t Write2(void* data, size_t size) {
+	uint32_t Write2(void* data, uint32_t size) {
 
 		/* Проверяем достаточно ли места */
 		uint32_t space = GetSpace();
@@ -119,7 +119,7 @@ public:
 	 * @param nBytesToRead запрашиваемое количество байт для чтения
 	 * @retval количество фактически прочитанных байт.
 	 */
-	size_t Read2(void* dest, uint32_t nBytesToRead) {
+	uint32_t Read2(void* dest, uint32_t nBytesToRead) {
 
 		/* Читаем не больше чем есть в буфере */
 		uint32_t count = GetCount();
