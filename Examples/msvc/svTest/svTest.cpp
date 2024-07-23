@@ -29,7 +29,7 @@ SvMsgProc sv;	/* Для работы с командами/логами scanviz 
  * @param id ID команды. Должен соответствовать типу команды
  * @returns true в случае успешной отправки
  */
-template<typename T, uint8_t id>
+template<typename T, svID_t id>
 bool Send_Cmd(T* pMsg);
 
 void PrintHelp();
@@ -404,10 +404,10 @@ DWORD WINAPI threadReadFromFile(LPVOID lpParams) {
 	return ret;
 }
 
-template <typename T, uint8_t id>
+template <typename T, svID_t id>
 bool Send_Cmd(T* pMsg) {
 
-	sv.Build_Msg(pMsg, id, (sizeof(T) - 10));
+	(void) sv.Build_Msg(pMsg, id, BODYLENGTH(T));
 	uint32_t bytesToSend = sizeof(T);
 
 	DWORD bytesSent = 0;

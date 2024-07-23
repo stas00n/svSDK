@@ -23,36 +23,35 @@ Scanviz serial protocol definitions
 #define ODO_MODE_UPDOWN       ((uint8_t)2)      /* Двунаправленный, 2 канала A+B */
 
 
-
-
-/* Message IDs */
-#define SCANVIZ_MSGID_ACK               0
-#define SCANVIZ_MSGID_IMUDATA           ((uint8_t)1)
-#define SCANVIZ_MSGID_EVENT             ((uint8_t)2)
-#define SCANVIZ_MSGID_ODOMETER          ((uint8_t)3)
-#define SCANVIZ_MSGID_LOG               ((uint8_t)4)
-#define SCANVIZ_MSGID_TIMEDWHEELDATA    ((uint8_t)5)
-
-/* Command IDs */
 typedef enum {
-        SCANVIZ_CMDID_PING = 0x80,
+	/* Message IDs */
+	SCANVIZ_MSGID_ACK = 0,
+	SCANVIZ_MSGID_IMUDATA = 1,
+	SCANVIZ_MSGID_EVENT = 2,
+	SCANVIZ_MSGID_ODOMETER = 3,
+	SCANVIZ_MSGID_LOG = 4,
+	SCANVIZ_MSGID_TIMEDWHEELDATA = 5,
+
+	/* Command IDs */
+	SCANVIZ_CMDID_PING = 0x80,
 	SCANVIZ_CMDID_CAM_TRIG_TIMED = 0x81,
 	SCANVIZ_CMDID_PWRCTRL = 0x82,
 	SCANVIZ_CMDID_CAM_TRIG_DIST = 0x83,
 	SCANVIZ_CMDID_SET_ODO_PARAMS = 0x84,
 	SCANVIZ_CMDID_SET_UART_SPEED = 0x85,
-
 	SCANVIZ_CMDID_SET_WHEEL_PARAMS = 0x87,
 	SCANVIZ_CMDID_GET_VERSION = 0x88,
-	SCANVIZ_CMDID_SET_EVENT_COUNTER	= 0x89,
-        SCANVIZ_CMDID_REBOOT = 0xEF,
+	SCANVIZ_CMDID_SET_EVENT_COUNTER = 0x89,
+	SCANVIZ_CMDID_REBOOT = 0xEF,
+	SCANVIZ_CMDID_START_BOOTLOADER = 0xFE,
+
+	/* Bootloader commands */
 	BLCMD_GO = 0xF9,
 	/*BLCMD_RESET_KEYINDX = 0xFA,*/
 	BLCMD_VERIFY = 0xFB,
 	BLCMD_WRITE = 0xFC,
 	BLCMD_ERASE = 0xFD,
-	SCANVIZ_CMDID_START_BOOTLOADER = 0xFE
-}svCmdID_t;
+}svID_t;
 
 #pragma pack(push, 2)
 /* Заголовок пакета */

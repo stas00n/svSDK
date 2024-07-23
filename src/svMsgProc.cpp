@@ -12,11 +12,11 @@ SvMsgProc::~SvMsgProc() {
 
 
 
-size_t SvMsgProc::Build_Msg(void* pMsg, uint8_t msgID, uint16_t bodylength) {
+uint16_t SvMsgProc::Build_Msg(void* pMsg, svID_t msgID, uint16_t bodylength) {
 	/* Fill header */
 	scanvizHdr_t* hdr = (scanvizHdr_t*)pMsg;
 	hdr->sync = SCANVIZ_START_MARKER;
-	hdr->msgID = msgID;
+	hdr->msgID = (uint8_t) msgID;
 	hdr->dlen = bodylength;
 	hdr->ver = SCANVIZ_VERSION;
 	hdr->resv = 0;
@@ -32,7 +32,6 @@ size_t SvMsgProc::Build_Msg(void* pMsg, uint8_t msgID, uint16_t bodylength) {
 	*(++p16) = chksum;
 	return (bodylength + 10);
 }
-
 
 
 void SvMsgProc::Free_Msg() {

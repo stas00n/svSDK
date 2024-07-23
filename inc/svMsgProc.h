@@ -3,7 +3,7 @@
 #include "scanviz.h"
 #include "streambuf.h"
 
-#define STREAMBUFSIZE 65536U
+#define STREAMBUFSIZE 8192U
 #define MSGBUFSIZE 256
 
 class SvMsgProc {
@@ -42,7 +42,8 @@ public:
 	 * до четности.
 	 * @returns длина готового сообщения.
 	 */
-	size_t Build_Msg(void *pMsg, uint8_t msgID, uint16_t bodylength);
+	uint16_t Build_Msg(void *pMsg, svID_t msgID, uint16_t bodylength);
+
 
 
 	/**
@@ -54,7 +55,7 @@ public:
 	 * @returns длина подготовленного сообщения
 	 */
 	template < typename T, uint8_t id >
-	size_t Build_Msg2(T* msg) {
+	uint16_t Build_Msg2(T* msg) {
 		/* заполняем заголовок */
 		scanvizHdr_t* hdr = (scanvizHdr_t*)msg;
 		hdr->sync = SCANVIZ_START_MARKER;
