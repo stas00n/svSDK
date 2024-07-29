@@ -7,10 +7,12 @@ class CStreamBuffer {
 	static_assert ((BUF_SIZE& (BUF_SIZE - 1)) == 0, "BUF_SIZE must be a power of 2!");
 
 private:
-	const uint32_t 			mask = BUF_SIZE - 1;
+
 	alignas(8) uint8_t		_buffer[BUF_SIZE]{};
 	volatile uint32_t		head = 0;
 	volatile uint32_t   	tail = 0;
+
+	const uint32_t 			mask = BUF_SIZE - 1;
 
 public:
 	/* Error counter */

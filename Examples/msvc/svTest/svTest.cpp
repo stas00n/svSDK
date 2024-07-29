@@ -125,18 +125,18 @@ int main(int argc, char** argv) {
 			cmd.trgPulse_ms = 5;				// 5 мс длительность импульса
 			cmd.trgDistance = 0.03f;				// триггируем через каждые 3 cм
 			/* Отправляем команду */
-			Send_Cmd <cmdCamTrigDist_t, SCANVIZ_CMDID_CAM_TRIG_DIST>(&cmd);
+			Send_Cmd <cmdCamTrigDist_t, _svID::CMD_CAM_TRIG_DIST>(&cmd);
 		}
 		if (ch == '2') {
 			cmdCamTrigTimed_t cmd;	// Команда триггера по времени
 			cmd.trgPeriod_ms = 500;
 			cmd.trgPulse_ms = 20;
-			Send_Cmd <cmdCamTrigTimed_t, SCANVIZ_CMDID_CAM_TRIG_TIMED>(&cmd);
+			Send_Cmd <cmdCamTrigTimed_t, _svID::CMD_CAM_TRIG_TIMED>(&cmd);
 		}
 		if (ch == '3') {
 			cmdGetVersion_t cmd;	// Получить версию firmware
 			cmd.reserved = 0;
-			Send_Cmd <cmdGetVersion_t, SCANVIZ_CMDID_GET_VERSION>(&cmd);
+			Send_Cmd <cmdGetVersion_t, _svID::CMD_GET_VERSION>(&cmd);
 		}
 		if (ch == '4') {
 			cmdSetOdoParams_t cmd;	// Настройка одометра - 20 Гц
@@ -144,7 +144,7 @@ int main(int argc, char** argv) {
 			cmd.doubleResolition = 0;
 			cmd.outputRate = 2;
 			cmd.reverseDir = 0;
-			Send_Cmd <cmdSetOdoParams_t, SCANVIZ_CMDID_SET_ODO_PARAMS>(&cmd);
+			Send_Cmd <cmdSetOdoParams_t, _svID::CMD_SET_ODO_PARAMS>(&cmd);
 		}
 		if (ch == '5') {
 			cmdSetOdoParams_t cmd;	// Настройка одометра - выкл
@@ -152,35 +152,35 @@ int main(int argc, char** argv) {
 			cmd.doubleResolition = 0;
 			cmd.outputRate = 0;
 			cmd.reverseDir = 0;
-			Send_Cmd <cmdSetOdoParams_t, SCANVIZ_CMDID_SET_ODO_PARAMS>(&cmd);
+			Send_Cmd <cmdSetOdoParams_t, _svID::CMD_SET_ODO_PARAMS>(&cmd);
 		}
 		if (ch == '6') {
 			cmdCamTrigTimed_t cmd;
 			cmd.trgPulse_ms = 5;
 			cmd.trgPeriod_ms = 200;
-			Send_Cmd <cmdCamTrigTimed_t, SCANVIZ_CMDID_CAM_TRIG_TIMED>(&cmd);
+			Send_Cmd <cmdCamTrigTimed_t, _svID::CMD_CAM_TRIG_TIMED>(&cmd);
 		}
 		if (ch == '7') {
 			cmdSetWheelParams_t cmd;
 			cmd.ticksPerRev = 150;
 			cmd.tickSpacing = 0.005;
 			cmd.wheelCirc = 2.033;
-			Send_Cmd <cmdSetWheelParams_t, SCANVIZ_CMDID_SET_WHEEL_PARAMS>(&cmd);
+			Send_Cmd <cmdSetWheelParams_t, _svID::CMD_SET_WHEEL_PARAMS>(&cmd);
 		}
 		if (ch == '8') {
 			cmdSetEventCounter_t cmd;
 			cmd.eventSrcID = 1;
 			cmd.newCounterValue = 0;
-			Send_Cmd <cmdSetEventCounter_t, SCANVIZ_CMDID_SET_EVENT_COUNTER>(&cmd);
+			Send_Cmd <cmdSetEventCounter_t, _svID::CMD_SET_EVENT_COUNTER>(&cmd);
 		}
 		if (ch == '9') {
 			cmdBootloader_t cmd;
-			Send_Cmd <cmdBootloader_t, SCANVIZ_CMDID_START_BOOTLOADER>(&cmd);
+			Send_Cmd <cmdBootloader_t, _svID::CMD_START_BOOTLOADER>(&cmd);
 		}
 		if (ch == '0') {
 			cmdReboot_t cmd;
 			cmd.rebootcode = 0;
-			Send_Cmd <cmdReboot_t, SCANVIZ_CMDID_REBOOT>(&cmd);
+			Send_Cmd <cmdReboot_t, _svID::CMD_REBOOT>(&cmd);
 		}
 	}
 
@@ -272,7 +272,7 @@ DWORD WINAPI threadParse(LPVOID lpParams) {
 		if (svHdr) {
 			/* смотрим ID */
 			switch (svHdr->msgID) {
-			case SCANVIZ_MSGID_EVENT:
+			case (int) _svID::MSG_EVENT:
 				msgEvent_t* evt;
 				evt = (msgEvent_t*)svHdr;	/* приводим указатеь к соответствующему типу */
 				if (outEnabled) {
@@ -282,7 +282,7 @@ DWORD WINAPI threadParse(LPVOID lpParams) {
 				}
 				break;
 
-			case SCANVIZ_MSGID_LOG:
+			case (int) _svID::MSG_LOG:
 				/* Для текстового лога нет отдельного типа, длина переменная, 
 				   приводим к указателю на строку */
 				LPSTR lpLogText;		
@@ -292,7 +292,7 @@ DWORD WINAPI threadParse(LPVOID lpParams) {
 				}
 				break;
 
-			case SCANVIZ_MSGID_ACK:
+			case (int) _svID::MSG_ACK:
 				msgAck_t* ack;
 				ack = (msgAck_t*)svHdr;
 				if (outEnabled) {
@@ -300,7 +300,7 @@ DWORD WINAPI threadParse(LPVOID lpParams) {
 				}
 				break;
 
-			case SCANVIZ_MSGID_ODOMETER:
+			case (int) _svID::MSG_ODOMETER:
 				msgOdo_t* odo;
 				odo = (msgOdo_t*)svHdr;
 				if (outEnabled) {
@@ -308,7 +308,7 @@ DWORD WINAPI threadParse(LPVOID lpParams) {
 				}
 				break;
 
-			case SCANVIZ_MSGID_TIMEDWHEELDATA:
+			case (int) _svID::MSG_TIMEDWHEELDATA:
 				msgTimedWheel_t* tw;
 				tw = (msgTimedWheel_t*)svHdr;
 				if (outEnabled) {

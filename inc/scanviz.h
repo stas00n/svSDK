@@ -22,36 +22,35 @@ Scanviz serial protocol definitions
 #define ODO_MODE_UP           ((uint8_t)1)      /* Счет в одну сторону, по каналу A */
 #define ODO_MODE_UPDOWN       ((uint8_t)2)      /* Двунаправленный, 2 канала A+B */
 
+	typedef enum class _svID {
+		/* Message IDs */
+		MSG_ACK = 0,
+		MSG_IMUDATA = 1,
+		MSG_EVENT = 2,
+		MSG_ODOMETER = 3,
+		MSG_LOG = 4,
+		MSG_TIMEDWHEELDATA = 5,
 
-typedef enum {
-	/* Message IDs */
-	SCANVIZ_MSGID_ACK = 0,
-	SCANVIZ_MSGID_IMUDATA = 1,
-	SCANVIZ_MSGID_EVENT = 2,
-	SCANVIZ_MSGID_ODOMETER = 3,
-	SCANVIZ_MSGID_LOG = 4,
-	SCANVIZ_MSGID_TIMEDWHEELDATA = 5,
+		/* Command IDs */
+		CMD_PING = 0x80,
+		CMD_CAM_TRIG_TIMED = 0x81,
+		CMD_PWRCTRL = 0x82,
+		CMD_CAM_TRIG_DIST = 0x83,
+		CMD_SET_ODO_PARAMS = 0x84,
+		CMD_SET_UART_SPEED = 0x85,
+		CMD_SET_WHEEL_PARAMS = 0x87,
+		CMD_GET_VERSION = 0x88,
+		CMD_SET_EVENT_COUNTER = 0x89,
+		CMD_REBOOT = 0xEF,
+		CMD_START_BOOTLOADER = 0xFE,
 
-	/* Command IDs */
-	SCANVIZ_CMDID_PING = 0x80,
-	SCANVIZ_CMDID_CAM_TRIG_TIMED = 0x81,
-	SCANVIZ_CMDID_PWRCTRL = 0x82,
-	SCANVIZ_CMDID_CAM_TRIG_DIST = 0x83,
-	SCANVIZ_CMDID_SET_ODO_PARAMS = 0x84,
-	SCANVIZ_CMDID_SET_UART_SPEED = 0x85,
-	SCANVIZ_CMDID_SET_WHEEL_PARAMS = 0x87,
-	SCANVIZ_CMDID_GET_VERSION = 0x88,
-	SCANVIZ_CMDID_SET_EVENT_COUNTER = 0x89,
-	SCANVIZ_CMDID_REBOOT = 0xEF,
-	SCANVIZ_CMDID_START_BOOTLOADER = 0xFE,
-
-	/* Bootloader commands */
-	BLCMD_GO = 0xF9,
-	/*BLCMD_RESET_KEYINDX = 0xFA,*/
-	BLCMD_VERIFY = 0xFB,
-	BLCMD_WRITE = 0xFC,
-	BLCMD_ERASE = 0xFD,
-}svID_t;
+		/* Bootloader commands */
+		BLCMD_RUNAPP = 0xF9,
+		//BLCMD_RESET_KEYINDX = 0xFA,
+		BLCMD_VERIFY = 0xFB,
+		BLCMD_WRITE = 0xFC,
+		BLCMD_ERASE = 0xFD,
+	}svID_t;
 
 #pragma pack(push, 2)
 /* Заголовок пакета */
@@ -235,6 +234,7 @@ typedef struct {
 	uint16_t		chkSum;
 }cmdReboot_t;
 #pragma pack (pop)
+
 
 /* макрос расчета длины тела сообщения */
 #define BODYLENGTH(svtype) ((const uint16_t)((sizeof(svtype) - sizeof(scanvizHdr_t) - 2)))

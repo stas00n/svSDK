@@ -77,7 +77,7 @@ public:
 	}
 
 private:
-	enum _state { WAIT_START = 0, WAIT_SIZE, WAIT_DATA, CHECK, COMPLETE, LOCKED }state;
+	enum class _state { WAIT_START = 0, WAIT_SIZE, WAIT_DATA, CHECK, COMPLETE, LOCKED }state;
 	uint8_t indx = 0;
 	uint32_t nErrors = 0;				/* —четчик ошибок */
 	static const uint16_t maxDataSize = sizeof(msgBuf) - sizeof(scanvizHdr_t) - 2;

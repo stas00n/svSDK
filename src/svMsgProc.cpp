@@ -2,7 +2,7 @@
 #include "svMsgProc.h"
 
 SvMsgProc::SvMsgProc() {
-	state = WAIT_START;
+	state = _state::WAIT_START;
 	indx = 0;
 }
 
@@ -36,7 +36,7 @@ uint16_t SvMsgProc::Build_Msg(void* pMsg, svID_t msgID, uint16_t bodylength) {
 
 void SvMsgProc::Free_Msg() {
 	memset(msgBuf, 0, sizeof(msgBuf));
-	state = WAIT_START;
+	state = _state::WAIT_START;
 	indx = 0;
 }
 
@@ -46,33 +46,33 @@ void SvMsgProc::Free_Msg() {
 */
 scanvizHdr_t* SvMsgProc::Get_Msg() {
 
-	static uint16_t rem = 0;      /*remainng bytes to complete message */
+	static uint32_t rem = 0;      /*remainng bytes to complete message */
 	scanvizHdr_t* hdr = (scanvizHdr_t*)msgBuf;
-	uint16_t cnt;	/* Количество байт доступных для чтения из буфера */
+	uint32_t cnt;	/* Количество байт доступных для чтения из буфера */
 	scanvizHdr_t* retVal = 0;
 
 	static union {
 		uint16_t value16;
-		struct {
+		struct _bytes{
 			uint8_t       low;
 			uint8_t       high;
-		};
+		}bytes;
 	}preamble;
 
-	if (state == LOCKED) {
+	if (state == _state::LOCKED) {
 		return 0;
 	}
 
-	if (state == WAIT_START) {
+	if (state == _state::WAIT_START) {
 
 		/* Start Recording */
 		cnt = msgStream.GetCount();
 
 		while (cnt) {
 			preamble.value16 >>= 8;
-			msgStream.Read2(&preamble.high, 1);
+			msgStream.Read2(&preamble.bytes.high, 1);
 			if (preamble.value16 == SCANVIZ_START_MARKER) {
-				state = WAIT_SIZE;
+				state = _state::WAIT_SIZE;
 				hdr->sync = preamble.value16;
 				indx = 2;
 				break;
@@ -81,7 +81,7 @@ scanvizHdr_t* SvMsgProc::Get_Msg() {
 		}
 	}
 
-	if (state == WAIT_SIZE) {
+	if (state == _state::WAIT_SIZE) {
 		cnt = msgStream.GetCount();
 
 		while (cnt--) {
@@ -95,16 +95,16 @@ scanvizHdr_t* SvMsgProc::Get_Msg() {
 			rem = hdr->dlen + 2;
 			if (rem > (maxDataSize + 2)) {
 				indx = 0;
-				state = WAIT_START;
+				state = _state::WAIT_START;
 				preamble.value16 = 0;
 			}
 			else {
-				state = WAIT_DATA;
+				state = _state::WAIT_DATA;
 			}
 		}
 	}
 
-	if (state == WAIT_DATA) {
+	if (state == _state::WAIT_DATA) {
 		cnt = msgStream.GetCount();
 		if (cnt > rem) {
 			cnt = rem;
@@ -112,15 +112,15 @@ scanvizHdr_t* SvMsgProc::Get_Msg() {
 
 		msgStream.Read2(&msgBuf[indx], cnt);
 		rem -= cnt;
-		indx += cnt;
+		indx += (uint8_t) cnt;
 
 		if (rem == 0) {
-			state = CHECK;
+			state = _state::CHECK;
 		}
 
 	}
 
-	if (state == CHECK) {
+	if (state == _state::CHECK) {
 		uint16_t dataLength;
 		dataLength = hdr->dlen;
 		if (dataLength <= maxDataSize) {
@@ -139,25 +139,25 @@ scanvizHdr_t* SvMsgProc::Get_Msg() {
 
 			/* Compare */
 			if (chkCalc == chkRcv) {
-				state = COMPLETE;
+				state = _state::COMPLETE;
 				retVal = hdr;
 			}
 			else {
 				nErrors++;
 				indx = 0;
-				state = WAIT_START;
+				state = _state::WAIT_START;
 				preamble.value16 = 0;
 			}
 		}
 		else {
 			indx = 0;
-			state = WAIT_START;
+			state = _state::WAIT_START;
 			preamble.value16 = 0;
 		}
 
 	}
-	if (state == COMPLETE) {
-		state = LOCKED;
+	if (state == _state::COMPLETE) {
+		state = _state::LOCKED;
 		indx = 0;
 		retVal = (scanvizHdr_t*)msgBuf;
 	}
