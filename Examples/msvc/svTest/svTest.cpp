@@ -182,6 +182,20 @@ int main(int argc, char** argv) {
 			cmd.rebootcode = 0;
 			Send_Cmd <cmdReboot_t, _svID::CMD_REBOOT>(&cmd);
 		}
+		if ((ch == 'L') || (ch == 'l')) {
+			static uint16_t on = 0;
+			on ^= 0xFFFFu;
+			cmdPwrCtrl_t cmd;
+			cmd.pwren = on;
+			std::cout << " Lidar power ";
+			if (on) {
+				std::cout << "ON\n";
+			}
+			else {
+				std::cout << "OFF\n";
+			}
+			Send_Cmd <cmdPwrCtrl_t, _svID::CMD_PWRCTRL>(&cmd);
+		}
 	}
 
 	/* Завершение программы */
@@ -433,4 +447,5 @@ void PrintHelp() {
 	std::cout << " 8 - SET_EVENT_COUNTER\n";
 	std::cout << " 9 - START_BOOTLOADER\n";
 	std::cout << " 0 - REBOOT\n";
+	std::cout << " L - Lidar Power on/off\n";
 }
